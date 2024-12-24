@@ -1,0 +1,39 @@
+[project]
+name = "Binoculars"
+version = "0.0.10"
+urls = { repository = "https://github.com/ahans30/Binoculars" }
+license = { file = "LICENSE.md" }
+authors = [
+    { name = "Authors of \"Binoculars: Zero-Shot Detection of LLM-Generated Text\"", email = "ahans1@umd.edu" },
+]
+description = "A language model generated text detector."
+
+dependencies = [
+    "datasets",
+    "gradio",
+    "gradio_client",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "seaborn",
+    "sentencepiece",
+    "transformers[torch]",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "ipython>=8.31.0",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["binoculars"]
