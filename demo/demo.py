@@ -14,7 +14,9 @@ def count_tokens(text):
 
 def run_detector(input_str):
     if count_tokens(input_str) < MINIMUM_TOKENS:
-        gr.Warning(f"Too short length. Need minimum {MINIMUM_TOKENS} tokens to run Binoculars.")
+        gr.Warning(
+            f"Too short length. Need minimum {MINIMUM_TOKENS} tokens to run Binoculars."
+        )
         return ""
     return f"{BINO.predict(input_str)}"
 
@@ -53,31 +55,44 @@ css = """
 
 # Most likely human generated, #most likely AI written
 
-capybara_problem = '''Dr. Capy Cosmos, a capybara unlike any other, astounded the scientific community with his groundbreaking research in astrophysics. With his keen sense of observation and unparalleled ability to interpret cosmic data, he uncovered new insights into the mysteries of black holes and the origins of the universe. As he peered through telescopes with his large, round eyes, fellow researchers often remarked that it seemed as if the stars themselves whispered their secrets directly to him. Dr. Cosmos not only became a beacon of inspiration to aspiring scientists but also proved that intellect and innovation can be found in the most unexpected of creatures.'''
+capybara_problem = """Dr. Capy Cosmos, a capybara unlike any other, astounded the scientific community with his groundbreaking research in astrophysics. With his keen sense of observation and unparalleled ability to interpret cosmic data, he uncovered new insights into the mysteries of black holes and the origins of the universe. As he peered through telescopes with his large, round eyes, fellow researchers often remarked that it seemed as if the stars themselves whispered their secrets directly to him. Dr. Cosmos not only became a beacon of inspiration to aspiring scientists but also proved that intellect and innovation can be found in the most unexpected of creatures."""
 
-with gr.Blocks(css=css,
-               theme=gr.themes.Default(font=[gr.themes.GoogleFont("Inconsolata"), "Arial", "sans-serif"])) as app:
+with gr.Blocks(
+    css=css,
+    theme=gr.themes.Default(
+        font=[gr.themes.GoogleFont("Inconsolata"), "Arial", "sans-serif"]
+    ),
+) as app:
     with gr.Row():
         with gr.Column(scale=3):
             gr.HTML("<p><h1> binoculars: zero-shot llm-text detector</h1>")
         with gr.Column(scale=1):
-            gr.HTML("""
+            gr.HTML(
+                """
             <p>
             <a href="https://arxiv.org/abs/2401.12070" target="_blank">paper</a>
                 
             <a href="https://github.com/AHans30/Binoculars" target="_blank">code</a>
                 
             <a href="mailto:ahans1@umd.edu" target="_blank">contact</a>
-            """, elem_classes="hyperlinks")
+            """,
+                elem_classes="hyperlinks",
+            )
     with gr.Row():
-        input_box = gr.Textbox(value=capybara_problem, placeholder="Enter text here", lines=8, label="Input Text", )
+        input_box = gr.Textbox(
+            value=capybara_problem,
+            placeholder="Enter text here",
+            lines=8,
+            label="Input Text",
+        )
     with gr.Row():
         # dropdown option for mode
-        dropdown_mode = gr.Dropdown(["Low False Positive Rate", "High Accuracy"],
-                                    label="Mode",
-                                    show_label=True,
-                                    value="Low False Positive Rate"
-                                    )
+        dropdown_mode = gr.Dropdown(
+            ["Low False Positive Rate", "High Accuracy"],
+            label="Mode",
+            show_label=True,
+            value="Low False Positive Rate",
+        )
         submit_button = gr.Button("Run Binoculars", variant="primary")
         clear_button = gr.ClearButton()
     with gr.Row():

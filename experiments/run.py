@@ -20,18 +20,23 @@ def main(args):
     ds = Dataset.from_json(f"{args.dataset_path}")
 
     # Set (non) default values
-    args.dataset_name = args.dataset_name or args.dataset_path.rstrip("/").split("/")[-2]
-    machine_sample_key = (
-            args.machine_sample_key
-            or [x for x in list(ds.features.keys())[::-1] if "generated_text" in x][0]
+    args.dataset_name = (
+        args.dataset_name or args.dataset_path.rstrip("/").split("/")[-2]
     )
-    args.machine_text_source = args.machine_text_source or machine_sample_key.rstrip("_generated_text_wo_prompt")
+    machine_sample_key = (
+        args.machine_sample_key
+        or [x for x in list(ds.features.keys())[::-1] if "generated_text" in x][0]
+    )
+    args.machine_text_source = args.machine_text_source or machine_sample_key.rstrip(
+        "_generated_text_wo_prompt"
+    )
 
     # Set job name, experiment path and create directory
     args.job_name = (
-            args.job_name
-            or f"{args.dataset_name}-{args.machine_text_source}-{args.tokens_seen}-tokens"
-            .strip().replace(' ', '-')
+        args.job_name
+        or f"{args.dataset_name}-{args.machine_text_source}-{args.tokens_seen}-tokens".strip().replace(
+            " ", "-"
+        )
     )
     breakpoint()
     args.experiment_path = f"results/{args.job_name}"
@@ -43,7 +48,7 @@ def main(args):
         lambda batch: {"score": bino.compute_score(batch[args.human_sample_key])},
         batched=True,
         batch_size=args.batch_size,
-        remove_columns=ds.column_names
+        remove_columns=ds.column_names,
     )
 
     print(f"Scoring machine text")
@@ -51,7 +56,7 @@ def main(args):
         lambda batch: {"score": bino.compute_score(batch[args.machine_sample_key])},
         batched=True,
         batch_size=args.batch_size,
-        remove_columns=ds.column_names
+        remove_columns=ds.column_names,
     )
 
     score_df = convert_to_pandas(human_scores, machine_scores)
@@ -59,8 +64,12 @@ def main(args):
 
     # Compute metrics
     f1_score = metrics.f1_score(score_df["class"], score_df["pred"])
-    score = -1 * score_df["score"]  # We negative scale the scores to make the class 1 (machine) the positive class
-    fpr, tpr, thresholds = metrics.roc_curve(y_true=score_df["class"], y_score=score, pos_label=1)
+    score = (
+        -1 * score_df["score"]
+    )  # We negative scale the scores to make the class 1 (machine) the positive class
+    fpr, tpr, thresholds = metrics.roc_curve(
+        y_true=score_df["class"], y_score=score, pos_label=1
+    )
     roc_auc = metrics.auc(fpr, tpr)
     # Interpolate the TPR at FPR = 0.01%, this is a fixed point in roc curve
     tpr_at_fpr_0_01 = np.interp(0.01 / 100, fpr, tpr)
@@ -81,15 +90,32 @@ if __name__ == "__main__":
 
     # Dataset arguments
     parser.add_argument("--dataset_path", type=str, help="Path to the jsonl file")
-    parser.add_argument("--dataset_name", type=str, default=None, help="name of the dataset")
-    parser.add_argument("--human_sample_key", type=str, help="key for the human-generated text")
-    parser.add_argument("--machine_sample_key", type=str, default=None,
-                        help="key for the machine-generated text")
-    parser.add_argument("--machine_text_source", type=str, default=None,
-                        help="name of model used to generate machine text")
+    parser.add_argument(
+        "--dataset_name", type=str, default=None, help="name of the dataset"
+    )
+    parser.add_argument(
+        "--human_sample_key", type=str, help="key for the human-generated text"
+    )
+    parser.add_argument(
+        "--machine_sample_key",
+        type=str,
+        default=None,
+        help="key for the machine-generated text",
+    )
+    parser.add_argument(
+        "--machine_text_source",
+        type=str,
+        default=None,
+        help="name of model used to generate machine text",
+    )
 
     # Scoring arguments
-    parser.add_argument("--tokens_seen", type=int, default=512, help="Number of tokens seen by the model")
+    parser.add_argument(
+        "--tokens_seen",
+        type=int,
+        default=512,
+        help="Number of tokens seen by the model",
+    )
 
     # Computational arguments
     parser.add_argument("--batch_size", type=int, default=32)
