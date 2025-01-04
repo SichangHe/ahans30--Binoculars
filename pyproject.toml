@@ -18,6 +18,7 @@ dependencies = [
     "seaborn",
     "sentencepiece",
     "transformers[torch]",
+    "nvidia-cuda-runtime-cu12<12.4",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -28,9 +29,7 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "ipython>=8.31.0",
-]
+dev-dependencies = ["ipython>=8.31.0"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
