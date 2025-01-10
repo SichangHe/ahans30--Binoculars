@@ -17,8 +17,9 @@ dependencies = [
     "scikit-learn",
     "seaborn",
     "sentencepiece",
-    "transformers[torch]",
+    "transformers[torch]>=4",
     "nvidia-cuda-runtime-cu12<12.4",
+    "torch",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
