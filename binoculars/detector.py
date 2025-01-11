@@ -1,13 +1,13 @@
+import os
 from typing import Union
 
-import os
 import numpy as np
 import torch
 import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from .metrics import entropy, perplexity
 from .utils import assert_tokenizer_consistency
-from .metrics import perplexity, entropy
 
 torch.set_grad_enabled(False)
 
@@ -86,11 +86,9 @@ class Binoculars(object):
             torch.cuda.synchronize()
         return observer_logits, performer_logits
 
-    def compute_score(
-        self, input_text: Union[list[str], str]
-    ) -> Union[float, list[float]]:
-        batch = [input_text] if isinstance(input_text, str) else input_text
-        encodings = self._tokenize(batch)
+    def compute_encodings_score(
+        self, encodings: transformers.BatchEncoding
+    ) -> np.ndarray:
         observer_logits, performer_logits = self._get_logits(encodings)
         ppl = perplexity(encodings, performer_logits)
         x_ppl = entropy(
@@ -100,6 +98,14 @@ class Binoculars(object):
             self.tokenizer.pad_token_id,
         )
         binoculars_scores = ppl / x_ppl
+        return binoculars_scores
+
+    def compute_score(
+        self, input_text: Union[list[str], str]
+    ) -> Union[float, list[float]]:
+        batch = [input_text] if isinstance(input_text, str) else input_text
+        encodings = self._tokenize(batch)
+        binoculars_scores = self.compute_encodings_score(encodings)
         binoculars_scores = binoculars_scores.tolist()
         return (
             binoculars_scores[0] if isinstance(input_text, str) else binoculars_scores
