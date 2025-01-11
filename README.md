@@ -34,7 +34,7 @@ details about the Binoculars work.
 To detect AI-generated text, please use the following code snippet:
 
 ```python
-from binoculars import Binoculars
+from binoculars.detector import Binoculars
 
 bino = Binoculars()
 
