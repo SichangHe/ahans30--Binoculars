@@ -37,24 +37,22 @@ class Binoculars(object):
         mode: str = "low-fpr",
     ) -> None:
         assert_tokenizer_consistency(observer_name_or_path, performer_name_or_path)
-
+        torch.set_float32_matmul_precision('medium')
         self.change_mode(mode)
-        self.observer_model = AutoModelForCausalLM.from_pretrained(
-            observer_name_or_path,
-            device_map={"": DEVICE_1},
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
-            token=huggingface_config["TOKEN"],
-        )
-        self.performer_model = AutoModelForCausalLM.from_pretrained(
-            performer_name_or_path,
-            device_map={"": DEVICE_2},
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
-            token=huggingface_config["TOKEN"],
-        )
-        self.observer_model.eval()
-        self.performer_model.eval()
+        self.observer_model = torch.compile(AutoModelForCausalLM.from_pretrained(observer_name_or_path,
+                                                                   device_map={"": DEVICE_1},
+                                                                   trust_remote_code=True,
+                                                                   torch_dtype=torch.bfloat16 if use_bfloat16
+                                                                   else torch.float32,
+                                                                   token=huggingface_config["TOKEN"]
+                                                                   ).eval())
+        self.performer_model = torch.compile(AutoModelForCausalLM.from_pretrained(performer_name_or_path,
+                                                                    device_map={"": DEVICE_2},
+                                                                    trust_remote_code=True,
+                                                                    torch_dtype=torch.bfloat16 if use_bfloat16
+                                                                    else torch.float32,
+                                                                    token=huggingface_config["TOKEN"]
+                                                                    ).eval())
         
         self.executor = ThreadPoolExecutor(max_workers=4)
 
