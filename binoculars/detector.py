@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from concurrent.futures import ThreadPoolExecutor
 
 from binoculars import BINOCULARS_ACCURACY_THRESHOLD, BINOCULARS_FPR_THRESHOLD
 
@@ -18,9 +19,13 @@ huggingface_config = {
     "TOKEN": os.environ.get("HF_TOKEN", None)
 }
 
+DEVICE_1 = "cuda:0"
+DEVICE_2 = "cuda:1"
+
 DEVICE_1 = "cuda:0" if torch.cuda.is_available() else "cpu"
 DEVICE_2 = "cuda:1" if torch.cuda.device_count() > 1 else DEVICE_1
 
+assert torch.cuda.device_count() > 2, "requires 2 GPU for cross perplexity"
 
 class Binoculars(object):
     def __init__(
@@ -50,6 +55,8 @@ class Binoculars(object):
         )
         self.observer_model.eval()
         self.performer_model.eval()
+        
+        self.executor = ThreadPoolExecutor(max_workers=4)
 
         self.tokenizer = AutoTokenizer.from_pretrained(observer_name_or_path)
         if not self.tokenizer.pad_token:
@@ -75,13 +82,22 @@ class Binoculars(object):
             return_token_type_ids=False,
         ).to(self.observer_model.device)
         return encodings
-
+    
     @torch.inference_mode()
+    def _get_observer_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
+        return self.observer_model(**encodings.to(DEVICE_1)).logits
+    
+    @torch.inference_mode()
+    def _get_performer_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
+        return self.performer_model(**encodings.to(DEVICE_2)).logits
+    
     def _get_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
-        observer_logits = self.observer_model(**encodings.to(DEVICE_1)).logits
-        performer_logits = self.performer_model(**encodings.to(DEVICE_2)).logits
-        if DEVICE_1 != "cpu":
-            torch.cuda.synchronize()
+        future_observer = self.executor.submit(self._get_observer_logits, encodings)
+        future_performer = self.executor.submit(self._get_performer_logits, encodings)
+        
+        observer_logits = future_observer.result()
+        performer_logits = future_performer.result()
+
         return observer_logits, performer_logits
 
     def compute_encodings_score(
