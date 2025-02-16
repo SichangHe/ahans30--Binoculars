@@ -1,0 +1,11 @@
+sentencepiece
+tokenizers
+transformers
+datasets
+numpy
+gradio
+gradio_client
+scikit-learn
+seaborn
+pandas
+vllm
