@@ -22,9 +22,6 @@ huggingface_config = {
 DEVICE_1 = "cuda:0"
 DEVICE_2 = "cuda:1"
 
-DEVICE_1 = "cuda:0" if torch.cuda.is_available() else "cpu"
-DEVICE_2 = "cuda:1" if torch.cuda.device_count() > 1 else DEVICE_1
-
 assert torch.cuda.device_count() > 2, "requires 2 GPU for cross perplexity"
 
 class Binoculars(object):
