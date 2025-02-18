@@ -1,11 +1,11 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Union
 
 import numpy as np
 import torch
 import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from concurrent.futures import ThreadPoolExecutor
 
 from binoculars import BINOCULARS_ACCURACY_THRESHOLD, BINOCULARS_FPR_THRESHOLD
 
@@ -24,6 +24,7 @@ DEVICE_2 = "cuda:1"
 
 assert torch.cuda.device_count() > 2, "requires 2 GPU for cross perplexity"
 
+
 class Binoculars(object):
     def __init__(
         self,
@@ -34,23 +35,27 @@ class Binoculars(object):
         mode: str = "low-fpr",
     ) -> None:
         assert_tokenizer_consistency(observer_name_or_path, performer_name_or_path)
-        torch.set_float32_matmul_precision('medium')
+        torch.set_float32_matmul_precision("medium")
         self.change_mode(mode)
-        self.observer_model = torch.compile(AutoModelForCausalLM.from_pretrained(observer_name_or_path,
-                                                                   device_map={"": DEVICE_1},
-                                                                   trust_remote_code=True,
-                                                                   torch_dtype=torch.bfloat16 if use_bfloat16
-                                                                   else torch.float32,
-                                                                   token=huggingface_config["TOKEN"]
-                                                                   ).eval())
-        self.performer_model = torch.compile(AutoModelForCausalLM.from_pretrained(performer_name_or_path,
-                                                                    device_map={"": DEVICE_2},
-                                                                    trust_remote_code=True,
-                                                                    torch_dtype=torch.bfloat16 if use_bfloat16
-                                                                    else torch.float32,
-                                                                    token=huggingface_config["TOKEN"]
-                                                                    ).eval())
-        
+        self.observer_model = torch.compile(
+            AutoModelForCausalLM.from_pretrained(
+                observer_name_or_path,
+                device_map={"": DEVICE_1},
+                trust_remote_code=True,
+                torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
+                token=huggingface_config["TOKEN"],
+            ).eval()
+        )
+        self.performer_model = torch.compile(
+            AutoModelForCausalLM.from_pretrained(
+                performer_name_or_path,
+                device_map={"": DEVICE_2},
+                trust_remote_code=True,
+                torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
+                token=huggingface_config["TOKEN"],
+            ).eval()
+        )
+
         self.executor = ThreadPoolExecutor(max_workers=4)
 
         self.tokenizer = AutoTokenizer.from_pretrained(observer_name_or_path)
@@ -77,19 +82,23 @@ class Binoculars(object):
             return_token_type_ids=False,
         ).to(self.observer_model.device)
         return encodings
-    
+
     @torch.inference_mode()
-    def _get_observer_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
+    def _get_observer_logits(
+        self, encodings: transformers.BatchEncoding
+    ) -> torch.Tensor:
         return self.observer_model(**encodings.to(DEVICE_1)).logits
-    
+
     @torch.inference_mode()
-    def _get_performer_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
+    def _get_performer_logits(
+        self, encodings: transformers.BatchEncoding
+    ) -> torch.Tensor:
         return self.performer_model(**encodings.to(DEVICE_2)).logits
-    
+
     def _get_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
         future_observer = self.executor.submit(self._get_observer_logits, encodings)
         future_performer = self.executor.submit(self._get_performer_logits, encodings)
-        
+
         observer_logits = future_observer.result()
         performer_logits = future_performer.result()
 
