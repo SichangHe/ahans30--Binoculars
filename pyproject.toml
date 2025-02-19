@@ -18,7 +18,7 @@ dependencies = [
     "seaborn",
     "sentencepiece",
     "transformers[torch]>=4",
-    "nvidia-cuda-runtime-cu12<12.7",
+    "nvidia-cuda-runtime-cu12<12.4",
     "torch",
 ]
 readme = "README.md"

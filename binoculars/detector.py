@@ -22,7 +22,7 @@ huggingface_config = {
 DEVICE_1 = "cuda:0"
 DEVICE_2 = "cuda:1"
 
-assert torch.cuda.device_count() > 2, "requires 2 GPU for cross perplexity"
+assert torch.cuda.device_count() >= 2, "requires 2 GPU for cross perplexity"
 
 
 class Binoculars(object):
@@ -44,7 +44,8 @@ class Binoculars(object):
                 trust_remote_code=True,
                 torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
                 token=huggingface_config["TOKEN"],
-            ).eval()
+            ).eval(),
+            backend="eager",
         )
         self.performer_model = torch.compile(
             AutoModelForCausalLM.from_pretrained(
@@ -53,7 +54,8 @@ class Binoculars(object):
                 trust_remote_code=True,
                 torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
                 token=huggingface_config["TOKEN"],
-            ).eval()
+            ).eval(),
+            backend="eager",
         )
 
         self.executor = ThreadPoolExecutor(max_workers=4)
