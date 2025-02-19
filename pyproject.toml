@@ -20,7 +20,6 @@ dependencies = [
     "transformers[torch]>=4",
     "nvidia-cuda-runtime-cu12<12.7",
     "torch",
-    "vllm>=0.7.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -32,9 +31,6 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = ["ipython>=8.31.0"]
-
-[tool.uv]
-override-dependencies = ["numpy>=2.0.0"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
