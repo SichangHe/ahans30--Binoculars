@@ -45,7 +45,6 @@ class Binoculars(object):
                 torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
                 token=huggingface_config["TOKEN"],
             ).eval(),
-            backend="eager",
         )
         self.performer_model = torch.compile(
             AutoModelForCausalLM.from_pretrained(
@@ -55,7 +54,6 @@ class Binoculars(object):
                 torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
                 token=huggingface_config["TOKEN"],
             ).eval(),
-            backend="eager",
         )
 
         self.executor = ThreadPoolExecutor(max_workers=4)
