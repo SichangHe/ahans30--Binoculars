@@ -1,5 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
+from copy import copy
 from typing import Union
 
 import numpy as np
@@ -80,24 +81,30 @@ class Binoculars(object):
             truncation=True,
             max_length=self.max_token_observed,
             return_token_type_ids=False,
-        ).to(self.observer_model.device)
+        )
         return encodings
 
     @torch.inference_mode()
     def _get_observer_logits(
-        self, encodings: transformers.BatchEncoding
+        self, encodings_obs: transformers.BatchEncoding
     ) -> torch.Tensor:
-        return self.observer_model(**encodings.to(DEVICE_1)).logits
+        return self.observer_model(**encodings_obs).logits
 
     @torch.inference_mode()
     def _get_performer_logits(
-        self, encodings: transformers.BatchEncoding
+        self, encodings_perf: transformers.BatchEncoding
     ) -> torch.Tensor:
-        return self.performer_model(**encodings.to(DEVICE_2)).logits
+        return self.performer_model(**encodings_perf).logits
 
-    def _get_logits(self, encodings: transformers.BatchEncoding) -> torch.Tensor:
-        future_observer = self.executor.submit(self._get_observer_logits, encodings)
-        future_performer = self.executor.submit(self._get_performer_logits, encodings)
+    def _get_logits(
+        self,
+        encodings_obs: transformers.BatchEncoding,
+        encodings_perf: transformers.BatchEncoding,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        future_observer = self.executor.submit(self._get_observer_logits, encodings_obs)
+        future_performer = self.executor.submit(
+            self._get_performer_logits, encodings_perf
+        )
 
         observer_logits = future_observer.result()
         performer_logits = future_performer.result()
@@ -107,12 +114,19 @@ class Binoculars(object):
     def compute_encodings_score(
         self, encodings: transformers.BatchEncoding
     ) -> np.ndarray:
-        observer_logits, performer_logits = self._get_logits(encodings)
-        ppl = perplexity(encodings, performer_logits)
+        obs_device = self.observer_model.device
+        perf_device = self.performer_model.device
+        # NOTE: `BatchEncoding.to()` mutates `self`.
+        encodings_obs = copy(encodings).to(obs_device, non_blocking=True)
+        encodings_perf = copy(encodings).to(perf_device, non_blocking=True)
+        observer_logits, performer_logits = self._get_logits(
+            encodings_obs, encodings_perf
+        )
+        ppl = perplexity(encodings_perf, performer_logits)
         x_ppl = entropy(
-            observer_logits.to(DEVICE_1),
-            performer_logits.to(DEVICE_1),
-            encodings.to(DEVICE_1),
+            observer_logits,
+            performer_logits.to(obs_device),
+            encodings_obs,
             self.tokenizer.pad_token_id,
         )
         binoculars_scores = ppl / x_ppl
