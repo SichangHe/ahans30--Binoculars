@@ -38,14 +38,14 @@ class Binoculars(object):
         assert_tokenizer_consistency(observer_name_or_path, performer_name_or_path)
         torch.set_float32_matmul_precision("medium")
         self.change_mode(mode)
-        self.observer_model = torch.compile(
-            AutoModelForCausalLM.from_pretrained(
-                observer_name_or_path,
-                device_map={"": DEVICE_1},
-                trust_remote_code=True,
-                torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
-                token=huggingface_config["TOKEN"],
-            ).eval(),
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        observer_model_future = self.executor.submit(
+            AutoModelForCausalLM.from_pretrained,
+            observer_name_or_path,
+            device_map={"": DEVICE_1},
+            trust_remote_code=True,
+            torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
+            token=huggingface_config["TOKEN"],
         )
         self.performer_model = torch.compile(
             AutoModelForCausalLM.from_pretrained(
@@ -56,8 +56,7 @@ class Binoculars(object):
                 token=huggingface_config["TOKEN"],
             ).eval(),
         )
-
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.observer_model = torch.compile(observer_model_future.result().eval())
 
         self.tokenizer = AutoTokenizer.from_pretrained(observer_name_or_path)
         if not self.tokenizer.pad_token:
@@ -101,14 +100,9 @@ class Binoculars(object):
         encodings_obs: transformers.BatchEncoding,
         encodings_perf: transformers.BatchEncoding,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        future_observer = self.executor.submit(self._get_observer_logits, encodings_obs)
-        future_performer = self.executor.submit(
-            self._get_performer_logits, encodings_perf
-        )
-
-        observer_logits = future_observer.result()
-        performer_logits = future_performer.result()
-
+        observer_future = self.executor.submit(self._get_observer_logits, encodings_obs)
+        performer_logits = self._get_performer_logits(encodings_perf)
+        observer_logits = observer_future.result()
         return observer_logits, performer_logits
 
     def compute_encodings_score(
@@ -122,15 +116,20 @@ class Binoculars(object):
         observer_logits, performer_logits = self._get_logits(
             encodings_obs, encodings_perf
         )
-        ppl = perplexity(encodings_perf, performer_logits)
+        ppl_future = self.executor.submit(perplexity, encodings_obs, observer_logits)
         x_ppl = entropy(
-            observer_logits,
-            performer_logits.to(obs_device),
-            encodings_obs,
+            copy(observer_logits).to(perf_device, non_blocking=True),
+            performer_logits,
+            encodings_perf,
             self.tokenizer.pad_token_id,
         )
-        binoculars_scores = ppl / x_ppl
-        return binoculars_scores
+        ppl = ppl_future.result()
+        assert isinstance(ppl, torch.Tensor), ppl
+        assert isinstance(x_ppl, torch.Tensor), x_ppl
+        binoculars_scores = ppl.to("cpu", non_blocking=True) / x_ppl.to(
+            "cpu", non_blocking=True
+        )
+        return binoculars_scores.to("cpu").float().numpy()
 
     def compute_score(
         self, input_text: Union[list[str], str]
