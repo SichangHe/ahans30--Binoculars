@@ -129,7 +129,17 @@ class Binoculars(object):
         binoculars_scores = ppl.to("cpu", non_blocking=True) / x_ppl.to(
             "cpu", non_blocking=True
         )
-        return binoculars_scores.to("cpu").float().numpy()
+        scores = binoculars_scores.to("cpu").float().numpy()
+        del (
+            encodings_obs,
+            encodings_perf,
+            observer_logits,
+            performer_logits,
+            ppl,
+            x_ppl,
+            binoculars_scores,
+        )
+        return scores
 
     def compute_score(
         self, input_text: Union[list[str], str]
