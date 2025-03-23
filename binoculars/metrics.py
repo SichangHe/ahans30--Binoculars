@@ -11,7 +11,7 @@ def perplexity(
     logits: torch.Tensor,
     median: bool = False,
     temperature: float = 1.0,
-) -> np.ndarray | torch.Tensor:
+) -> np.ndarray:
     shifted_logits = logits[..., :-1, :].contiguous() / temperature
     shifted_labels = encoding.input_ids[..., 1:].contiguous()
     shifted_attention_mask = encoding.attention_mask[..., 1:].contiguous()
@@ -27,6 +27,7 @@ def perplexity(
             ce_loss_fn(shifted_logits.transpose(1, 2), shifted_labels)
             * shifted_attention_mask
         ).sum(1) / shifted_attention_mask.sum(1)
+        ppl = ppl.to("cpu").float().numpy()
 
     return ppl
 
@@ -39,7 +40,7 @@ def entropy(
     median: bool = False,
     sample_p: bool = False,
     temperature: float = 1.0,
-) -> np.ndarray | torch.Tensor:
+) -> np.ndarray:
     vocab_size = p_logits.shape[-1]
     total_tokens_available = q_logits.shape[-2]
     p_scores, q_scores = p_logits / temperature, q_logits / temperature
@@ -60,6 +61,8 @@ def entropy(
         ce_nan = ce.masked_fill(~padding_mask.bool(), float("nan"))
         agg_ce = np.nanmedian(ce_nan.cpu().float().numpy(), 1)
     else:
-        agg_ce = (ce * padding_mask).sum(1) / padding_mask.sum(1)
+        agg_ce = (
+            ((ce * padding_mask).sum(1) / padding_mask.sum(1)).to("cpu").float().numpy()
+        )
 
     return agg_ce
