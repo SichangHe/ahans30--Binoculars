@@ -27,7 +27,7 @@ def change_mode(mode):
     elif mode == "High Accuracy":
         BINO.change_mode("accuracy")
     else:
-        gr.Error(f"Invalid mode selected.")
+        gr.Error("Invalid mode selected.")
     return mode
 
 

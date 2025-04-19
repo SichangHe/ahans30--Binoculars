@@ -43,7 +43,7 @@ def main(args):
     os.makedirs(f"{args.experiment_path}", exist_ok=True)
 
     # Score human and machine generated text
-    print(f"Scoring human text")
+    print("Scoring human text")
     human_scores = ds.map(
         lambda batch: {"score": bino.compute_score(batch[args.human_sample_key])},
         batched=True,
@@ -51,7 +51,7 @@ def main(args):
         remove_columns=ds.column_names,
     )
 
-    print(f"Scoring machine text")
+    print("Scoring machine text")
     machine_scores = ds.map(
         lambda batch: {"score": bino.compute_score(batch[args.machine_sample_key])},
         batched=True,
