@@ -35,8 +35,10 @@ class Binoculars(object):
         max_token_observed: int = 512,
         mode: str = "low-fpr",
         compile: bool = False,
+        check_tokenizer_consistency: bool = True,
     ) -> None:
-        assert_tokenizer_consistency(observer_name_or_path, performer_name_or_path)
+        if check_tokenizer_consistency:
+            assert_tokenizer_consistency(observer_name_or_path, performer_name_or_path)
         torch.set_float32_matmul_precision("medium")
         self.change_mode(mode)
         self.executor = ThreadPoolExecutor(max_workers=4)
