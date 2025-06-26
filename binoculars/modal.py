@@ -1,6 +1,7 @@
 """Run Binoculars on Modal."""
 
 from pathlib import Path, PurePosixPath
+from threading import Lock
 
 import huggingface_hub
 import modal
@@ -46,7 +47,7 @@ image = (
 @app.cls(
     gpu="A100:2",
     timeout=90,
-    scaledown_window=60,
+    scaledown_window=15,
     image=image,
     volumes=volumes,
 )
@@ -71,10 +72,12 @@ class BinoModal:
             compile=self.compile,
             check_tokenizer_consistency=self.check_tokenizer_consistency,
         )
+        self._lock = Lock()
 
     @modal.method()
     def compute_score(self, strings: list[str]):
-        return self.bino.compute_score(strings)
+        with self._lock:
+            return self.bino.compute_score(strings)
 
 
 @app.local_entrypoint()
