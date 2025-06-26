@@ -92,6 +92,9 @@ class Binoculars(object):
     def _get_performer_logits(
         self, encodings_perf: transformers.BatchEncoding
     ) -> torch.Tensor:
+        """FIXME: ValueError: Pointer argument (at 0) cannot be accessed from Triton (cpu tensor?) when using gptqmodel and GPTQ quantized LLM.
+        This is because Triton is tied to cuda:0 for gptqmodel.
+        If we are willing to only use one GPU, it works."""
         return self.performer_model(**encodings_perf).logits
 
     def _get_logits(
