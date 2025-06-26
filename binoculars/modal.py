@@ -55,9 +55,11 @@ image = (
 )
 @modal.concurrent(max_inputs=64)
 class BinoModal:
-    observer_name_or_path: str = parameter(default="tiiuae/falcon-7b")
-    performer_name_or_path: str = parameter(default="tiiuae/falcon-7b-instruct")
-    torch_dtype: str = parameter(default="bfloat16")
+    observer_name_or_path: str = parameter(default="SichangHe/falcon-7b-FP8-Dynamic")
+    performer_name_or_path: str = parameter(
+        default="SichangHe/falcon-7b-instruct-FP8-Dynamic"
+    )
+    torch_dtype: str = parameter(default="auto")
     max_token_observed: int = parameter(default=512)
     mode: str = parameter(default="low-fpr")
     compile: bool = parameter(default=False)
