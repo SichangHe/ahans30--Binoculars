@@ -13,10 +13,12 @@ app = modal.App("binoculars-falcon")
 
 
 def prefetch_models():
-    observer_name_or_path: str = "tiiuae/falcon-7b"
-    performer_name_or_path: str = "tiiuae/falcon-7b-instruct"
-    huggingface_hub.snapshot_download(observer_name_or_path)
-    huggingface_hub.snapshot_download(performer_name_or_path)
+    for observer_name_or_path, performer_name_or_path in (
+        ("tiiuae/falcon-7b", "tiiuae/falcon-7b-instruct"),
+        ("SichangHe/falcon-7b-FP8-Dynamic", "SichangHe/falcon-7b-instruct-FP8-Dynamic"),
+    ):
+        huggingface_hub.snapshot_download(observer_name_or_path)
+        huggingface_hub.snapshot_download(performer_name_or_path)
 
 
 # These are from <https://modal.com/docs/examples/sgl_vlm>.
@@ -45,8 +47,8 @@ image = (
 
 
 @app.cls(
-    gpu="A100:2",
-    timeout=90,
+    gpu="H100:1",
+    timeout=180,
     scaledown_window=15,
     image=image,
     volumes=volumes,
@@ -55,7 +57,7 @@ image = (
 class BinoModal:
     observer_name_or_path: str = parameter(default="tiiuae/falcon-7b")
     performer_name_or_path: str = parameter(default="tiiuae/falcon-7b-instruct")
-    use_bfloat16: bool = parameter(default=True)
+    torch_dtype: str = parameter(default="bfloat16")
     max_token_observed: int = parameter(default=512)
     mode: str = parameter(default="low-fpr")
     compile: bool = parameter(default=False)
@@ -66,7 +68,7 @@ class BinoModal:
         self.bino = Binoculars(
             observer_name_or_path=self.observer_name_or_path,
             performer_name_or_path=self.performer_name_or_path,
-            use_bfloat16=self.use_bfloat16,
+            torch_dtype=self.torch_dtype,
             max_token_observed=self.max_token_observed,
             mode=self.mode,
             compile=self.compile,

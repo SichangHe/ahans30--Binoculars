@@ -29,7 +29,7 @@ class Binoculars(object):
         self,
         observer_name_or_path: str = "tiiuae/falcon-7b",
         performer_name_or_path: str = "tiiuae/falcon-7b-instruct",
-        use_bfloat16: bool = True,
+        torch_dtype: torch.dtype | str = torch.bfloat16,
         max_token_observed: int = 512,
         mode: str = "low-fpr",
         compile: bool = False,
@@ -45,16 +45,14 @@ class Binoculars(object):
         self.observer_model = AutoModelForCausalLM.from_pretrained(
             observer_name_or_path,
             device_map={"": DEVICE_1},
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
+            torch_dtype=torch_dtype,
             token=huggingface_config["TOKEN"],
             **observer_kwargs,
         ).eval()
         self.performer_model = AutoModelForCausalLM.from_pretrained(
             performer_name_or_path,
             device_map={"": DEVICE_2},
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
+            torch_dtype=torch_dtype,
             token=huggingface_config["TOKEN"],
             **performer_kwargs,
         ).eval()
