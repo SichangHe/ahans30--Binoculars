@@ -34,6 +34,8 @@ class Binoculars(object):
         mode: str = "low-fpr",
         compile: bool = False,
         check_tokenizer_consistency: bool = True,
+        observer_kwargs={},
+        performer_kwargs={},
     ) -> None:
         if check_tokenizer_consistency:
             assert_tokenizer_consistency(observer_name_or_path, performer_name_or_path)
@@ -46,6 +48,7 @@ class Binoculars(object):
             trust_remote_code=True,
             torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
             token=huggingface_config["TOKEN"],
+            **observer_kwargs,
         ).eval()
         self.performer_model = AutoModelForCausalLM.from_pretrained(
             performer_name_or_path,
@@ -53,6 +56,7 @@ class Binoculars(object):
             trust_remote_code=True,
             torch_dtype=torch.bfloat16 if use_bfloat16 else torch.float32,
             token=huggingface_config["TOKEN"],
+            **performer_kwargs,
         ).eval()
         if compile:
             self.observer_model = torch.compile(self.observer_model)
