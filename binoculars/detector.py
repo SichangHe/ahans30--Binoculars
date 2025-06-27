@@ -1,7 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
-from typing import Union
 
 import numpy as np
 import torch
@@ -139,18 +138,12 @@ class Binoculars(object):
         )
         return binoculars_scores
 
-    def compute_score(
-        self, input_text: Union[list[str], str]
-    ) -> Union[float, list[float]]:
-        batch = [input_text] if isinstance(input_text, str) else input_text
-        encodings = self._tokenize(batch)
+    def compute_score(self, input_text: list[str]) -> list[float]:
+        encodings = self._tokenize(input_text)
         binoculars_scores = self.compute_encodings_score(encodings)
-        binoculars_scores = binoculars_scores.tolist()
-        return (
-            binoculars_scores[0] if isinstance(input_text, str) else binoculars_scores
-        )
+        return binoculars_scores.tolist()
 
-    def predict(self, input_text: Union[list[str], str]) -> Union[list[str], str]:
+    def predict(self, input_text: list[str]) -> list[str]:
         binoculars_scores = np.array(self.compute_score(input_text))
         pred = np.where(
             binoculars_scores < self.threshold,
