@@ -8,7 +8,11 @@ import torch
 import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from binoculars import BINOCULARS_ACCURACY_THRESHOLD, BINOCULARS_FPR_THRESHOLD
+from binoculars import (
+    BINOCULARS_ACCURACY_THRESHOLD,
+    BINOCULARS_FPR_THRESHOLD,
+    CONTEXT_WINDOW,
+)
 
 from .metrics import entropy, perplexity
 from .utils import assert_tokenizer_consistency
@@ -30,7 +34,7 @@ class Binoculars(object):
         observer_name_or_path: str = "SichangHe/falcon-7b-FP8-Dynamic",
         performer_name_or_path: str = "SichangHe/falcon-7b-instruct-FP8-Dynamic",
         torch_dtype: torch.dtype | str = "auto",
-        max_token_observed: int = 512,
+        max_token_observed: int = CONTEXT_WINDOW,
         mode: str = "low-fpr",
         compile: bool = False,
         check_tokenizer_consistency: bool = True,

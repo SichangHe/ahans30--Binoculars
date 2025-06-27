@@ -7,6 +7,7 @@ import huggingface_hub
 import modal
 from modal import parameter
 
+from binoculars import CONTEXT_WINDOW
 from binoculars.detector import Binoculars
 
 app = modal.App("binoculars-falcon")
@@ -60,7 +61,7 @@ class BinoModal:
         default="SichangHe/falcon-7b-instruct-FP8-Dynamic"
     )
     torch_dtype: str = parameter(default="auto")
-    max_token_observed: int = parameter(default=512)
+    max_token_observed: int = parameter(default=CONTEXT_WINDOW)
     mode: str = parameter(default="low-fpr")
     compile: bool = parameter(default=False)
     check_tokenizer_consistency: bool = parameter(default=True)
