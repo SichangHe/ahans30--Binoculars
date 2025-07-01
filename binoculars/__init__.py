@@ -6,3 +6,5 @@ BINOCULARS_FPR_THRESHOLD: Final = 0.8536432310785527
 """Score threshold optimized for low-fpr (chosen at 0.01%), selected using Falcon-7B and Falcon-7B-Instruct at bfloat16"""
 CONTEXT_WINDOW: Final = 2048
 """Falcon-7B context window size."""
+DEFAULT_OBSERVER_NAME: Final = "SichangHe/falcon-7b-FP8-Dynamic"
+DEFAULT_PERFORMER_NAME: Final = "SichangHe/falcon-7b-instruct-FP8-Dynamic"

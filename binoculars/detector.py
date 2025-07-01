@@ -11,6 +11,8 @@ from binoculars import (
     BINOCULARS_ACCURACY_THRESHOLD,
     BINOCULARS_FPR_THRESHOLD,
     CONTEXT_WINDOW,
+    DEFAULT_OBSERVER_NAME,
+    DEFAULT_PERFORMER_NAME,
 )
 
 from .metrics import entropy, perplexity
@@ -30,8 +32,8 @@ DEVICE_2 = "cuda:1" if torch.cuda.device_count() >= 2 else "cuda:0"
 class Binoculars(object):
     def __init__(
         self,
-        observer_name_or_path: str = "SichangHe/falcon-7b-FP8-Dynamic",
-        performer_name_or_path: str = "SichangHe/falcon-7b-instruct-FP8-Dynamic",
+        observer_name_or_path: str = DEFAULT_OBSERVER_NAME,
+        performer_name_or_path: str = DEFAULT_PERFORMER_NAME,
         torch_dtype: torch.dtype | str = "auto",
         max_token_observed: int = CONTEXT_WINDOW,
         mode: str = "low-fpr",
