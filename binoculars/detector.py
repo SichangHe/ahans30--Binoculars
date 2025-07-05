@@ -1,6 +1,7 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
+from threading import Lock
 
 import numpy as np
 import torch
@@ -68,6 +69,8 @@ class Binoculars(object):
         if not self.tokenizer.pad_token:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.max_token_observed = max_token_observed
+        self.tokenizer_lock = Lock()
+        self.inference_lock = Lock()
 
     def change_mode(self, mode: str) -> None:
         if mode == "low-fpr":
@@ -79,14 +82,15 @@ class Binoculars(object):
 
     def _tokenize(self, batch: list[str]) -> transformers.BatchEncoding:
         batch_size = len(batch)
-        encodings = self.tokenizer(
-            batch,
-            return_tensors="pt",
-            padding="longest" if batch_size > 1 else False,
-            truncation=True,
-            max_length=self.max_token_observed,
-            return_token_type_ids=False,
-        )
+        with self.tokenizer_lock:
+            encodings = self.tokenizer(
+                batch,
+                return_tensors="pt",
+                padding="longest" if batch_size > 1 else False,
+                truncation=True,
+                max_length=self.max_token_observed,
+                return_token_type_ids=False,
+            )
         return encodings
 
     @torch.inference_mode()
@@ -106,9 +110,10 @@ class Binoculars(object):
         encodings_obs: transformers.BatchEncoding,
         encodings_perf: transformers.BatchEncoding,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        observer_future = self.executor.submit(self._get_observer_logits, encodings_obs)
-        performer_logits = self._get_performer_logits(encodings_perf)
-        observer_logits = observer_future.result()
+        with self.inference_lock:
+            observer_future = self.executor.submit(self._get_observer_logits, encodings_obs)
+            performer_logits = self._get_performer_logits(encodings_perf)
+            observer_logits = observer_future.result()
         return observer_logits, performer_logits
 
     def compute_encodings_score(
